@@ -1,6 +1,7 @@
 #!/usr/bin/perl -ws
 
 use strict;
+use common;
 
 sub cat {
    while(<>) {
@@ -45,8 +46,4 @@ sub head {
 sub installutils {
 }
 
-(my $basename=$0)=~s!.*/!!;
-#print $basename;
-my $function=shift;
-eval "&$function";
-
+dispatch;
