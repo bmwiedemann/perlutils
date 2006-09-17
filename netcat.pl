@@ -8,13 +8,25 @@ use Getopt::Long;
 my %options=qw(
 timeout	1
 );
-my @options=qw(listen|l port|p=i udp|u);
+my @options=qw(broadcast|b listen|l port|p=i udp|u timeout|w=i source|s=s verbose|v+);
+my ($sent,$rcvd)=(0,0);
 
 if(!GetOptions(\%options, @options)) {die "invalid option on commandline. @ARGV\n"}
 my $sock;
-my $proto=$options{udp}?"udp":"tcp";
+my @opts=(Proto=>$options{udp}?"udp":"tcp");
+if($options{source}) {
+	push(@opts, LocalAddr=>$options{source});
+}
+if($options{broadcast}) {
+	push(@opts, Broadcast=>1);
+}
+if($options{port}) {
+	push(@opts, LocalPort=>$options{port});
+}
+
+
 if($options{listen}) {
-	$sock=IO::Socket::INET->new(Proto=>$proto, Listen=>1, ReuseAddr=>1, LocalPort=>$options{port}) or die "$@\n";
+	$sock=IO::Socket::INET->new(@opts, Listen=>1, ReuseAddr=>1) or die "$@\n";
 	$sock=$sock->accept();
 } else {
 	my $paddr=shift;
@@ -24,7 +36,10 @@ if($options{listen}) {
 		exit 1;
 	}
 
-	$sock=IO::Socket::INET->new(Proto=>$proto, PeerAddr=>$paddr, PeerPort=>$pport) or die "$@ $!";
+	$sock=IO::Socket::INET->new(@opts, PeerAddr=>$paddr, PeerPort=>$pport, Timeout=>$options{timeout}) or die "$@ $!";
+	if($options{verbose}) {
+		printf("%s [%s] %i (%s) open\n", "", $sock->peerhost(), $sock->peerport(), "TODO");
+	}
 }
 my $sel=IO::Select->new($sock, \*STDIN);
 my $willexit=0;
@@ -40,8 +55,16 @@ while(1) {
 		if($fd == $sock) { $outfd=\*STDOUT }
 		my $data;
 		my $numbytes=sysread($fd, $data, 65000);
-		if(!$numbytes) { $willexit++; $sel->remove($fd); close($fd); $exittime||=[gettimeofday()]; next FDLOOP; }
+		if(!$numbytes) { 
+		   # we are done when the remote socket is closed
+			if($fd == $sock) { last MAINLOOP }
+			$willexit++; $sel->remove($fd); close($fd); $exittime||=[gettimeofday()]; next FDLOOP; }
 		syswrite($outfd, $data, $numbytes);
+		if($fd == $sock) { $rcvd+=$numbytes }
+		else { $sent+=$numbytes }
 	}
 }
 
+if($options{verbose}) {
+	print " sent $sent, rcvd $rcvd\n";
+}
