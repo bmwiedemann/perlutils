@@ -29,7 +29,16 @@ if($options{port}) {
 if($options{listen}) {
 	if(!$options{udp}) {push(@opts, Listen=>1)}
 	$sock=IO::Socket::INET6->new(@opts, ReuseAddr=>1) or die "$@\n";
-	if(!$options{udp}) {
+	if($options{udp}) {
+		my $firstmsg;
+		$sock->recv($firstmsg, 65535);
+		print $firstmsg;
+		my $sender=$sock->peerhost();
+		my $pport=$sock->peerport();
+		#print "incoming $sender : $pport : $firstmsg\n";
+		push(@opts, PeerPort=>$pport, PeerAddr=>$sender);
+		$sock=IO::Socket::INET6->new(@opts, ReuseAddr=>1) or die "$@\n";
+	} else {
 		$sock=$sock->accept();
 	}
 } else {
