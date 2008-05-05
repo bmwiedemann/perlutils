@@ -27,8 +27,11 @@ if($options{port}) {
 
 
 if($options{listen}) {
-	$sock=IO::Socket::INET6->new(@opts, Listen=>1, ReuseAddr=>1) or die "$@\n";
-	$sock=$sock->accept();
+	if(!$options{udp}) {push(@opts, Listen=>1)}
+	$sock=IO::Socket::INET6->new(@opts, ReuseAddr=>1) or die "$@\n";
+	if(!$options{udp}) {
+		$sock=$sock->accept();
+	}
 } else {
 	my $paddr=shift;
 	my $pport=shift;
