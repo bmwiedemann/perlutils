@@ -8,7 +8,8 @@ sub usage() {
 sub dispatch() {
    (my $basename=$0)=~s!.*/!!;
 #print $basename;
-   my $function=shift(@ARGV);
+   my $function=$basename;
+   $function=shift(@ARGV) if $function=~/\.pl$/;
    usage unless defined $function;
    eval "&$function";
 }
