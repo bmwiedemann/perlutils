@@ -38,9 +38,10 @@ sub uniq {
 }
 
 sub head {
-#   for(my $i=0; $i<$n; ++$i) {
-#      print $line;
-#   }
+    my $n=10;
+    for(my $i=0; $i<$n; ++$i) {
+        print scalar <>;
+    }
 }
 
 sub installutils {
